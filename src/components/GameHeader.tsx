@@ -11,7 +11,7 @@ interface Props {
 
 const GRADE_NAMES: Record<number, string> = { 1: '启蒙', 2: '进阶', 3: '挑战' };
 
-export function GameHeader({ level, eliminatedCount, isCustom, customTitle, onSelectLevel, onUpload }: Props) {
+export function GameHeader({ level, eliminatedCount, isCustom, customTitle, onUpload }: Props) {
   return (
     <div className="game-header">
       <div className="game-header-top">
