@@ -9,16 +9,24 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/genai": "^2.6.0",
+    "@google/generative-ai": "^0.24.1",
+    "hanzi-writer": "^3.7.3",
+    "msedge-tts": "^2.0.5",
     "next": "16.2.6",
+    "pinyin-pro": "^3.28.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "undici": "^8.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "playwright": "^1.60.0",
     "typescript": "^5"
   }
 }
