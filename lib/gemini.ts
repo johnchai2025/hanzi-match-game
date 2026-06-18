@@ -35,11 +35,10 @@ export async function generateWordCardImage(
 色彩鲜艳明亮，卡通可爱，适合6岁小朋友欣赏，构图简洁，画面中不要出现任何文字、汉字、拼音、字幕或标牌。`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-image-preview',
+    model: 'gemini-2.0-flash-preview-image-generation',
     contents: prompt,
     config: {
       responseModalities: [Modality.IMAGE, Modality.TEXT],
-      imageConfig: { aspectRatio: '1:1', imageSize: '1K' },
     },
   });
 
