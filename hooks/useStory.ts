@@ -45,7 +45,8 @@ export function useStory({ onStoryGenerated, getCharacter, getRandomScene }: Use
       const lines = rawContent.split('\n');
       const titleMatch = lines[0]?.trim().match(/^《(.+)》$/);
       const title = titleMatch ? titleMatch[1] : undefined;
-      const content = titleMatch ? lines.slice(1).join('\n').trim() : rawContent;
+      const rawBody = titleMatch ? lines.slice(1).join('\n').trim() : rawContent;
+      const content = rawBody.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
 
       const story: Story = {
         id: `story-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -79,7 +80,8 @@ export function useStory({ onStoryGenerated, getCharacter, getRandomScene }: Use
       const lines = rawContent.split('\n');
       const titleMatch = lines[0]?.trim().match(/^《(.+)》$/);
       const title = titleMatch ? titleMatch[1] : undefined;
-      const content = titleMatch ? lines.slice(1).join('\n').trim() : rawContent;
+      const rawBody = titleMatch ? lines.slice(1).join('\n').trim() : rawContent;
+      const content = rawBody.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
 
       const story: Story = {
         id: `story-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
