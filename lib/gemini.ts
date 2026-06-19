@@ -1,23 +1,26 @@
-import https from 'https';
-import { GoogleGenAI, Modality } from '@google/genai';
+const MIMO_API_KEY = process.env.MIMO_API_KEY || '';
+const MIMO_BASE = 'https://token-plan-sgp.xiaomimimo.com/v1';
+const MIMO_MODEL_IMAGE = 'mimo-v2.5';        // 原生多模态，支持图像生成
+const MIMO_MODEL_STORY = 'mimo-v2.5-pro';   // 纯文本旗舰，故事质量更高
 
-const API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-let proxyReady = false;
+async function mimoFetch(path: string, body: object) {
+  if (!MIMO_API_KEY) throw new Error('MIMO_API_KEY is not configured');
 
-async function ensureProxySupport() {
-  if (proxyReady) return;
-  proxyReady = true;
+  const res = await fetch(`${MIMO_BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${MIMO_API_KEY}`,
+    },
+    body: JSON.stringify(body),
+  });
 
-  const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy ||
-    process.env.HTTP_PROXY || process.env.http_proxy;
-  if (!proxyUrl) return;
-
-  try {
-    const { setGlobalDispatcher, ProxyAgent } = await import('undici');
-    setGlobalDispatcher(new ProxyAgent(proxyUrl));
-  } catch (error) {
-    console.warn('Failed to configure proxy for Gemini requests:', error);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Mimo API error ${res.status}: ${text.slice(0, 300)}`);
   }
+
+  return res.json();
 }
 
 export async function generateWordCardImage(
@@ -25,32 +28,19 @@ export async function generateWordCardImage(
   animal: string,
   scene: string
 ): Promise<string> {
-  if (!API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured');
-  }
+  const prompt = `绘本插画风格，一只可爱的${animal}在${scene}里，画面温馨地表现"${word}"这个中文词语的意思。色彩鲜艳明亮，卡通可爱，适合6岁小朋友欣赏，构图简洁，画面中不要出现任何文字、汉字、拼音、字幕或标牌。`;
 
-  await ensureProxySupport();
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
-  const prompt = `绘本插画风格，一只可爱的${animal}在${scene}里，画面温馨地表现”${word}”这个中文词语的意思。
-色彩鲜艳明亮，卡通可爱，适合6岁小朋友欣赏，构图简洁，画面中不要出现任何文字、汉字、拼音、字幕或标牌。`;
-
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash-preview-image-generation',
-    contents: prompt,
-    config: {
-      responseModalities: [Modality.IMAGE, Modality.TEXT],
-    },
+  const data = await mimoFetch('/images/generations', {
+    model: MIMO_MODEL_IMAGE,
+    prompt,
+    n: 1,
+    response_format: 'b64_json',
   });
 
-  const parts = response.candidates?.[0]?.content?.parts ?? [];
-  const imageData = parts.find(part => part.inlineData?.data)?.inlineData?.data;
+  const b64 = data?.data?.[0]?.b64_json;
+  if (!b64) throw new Error(`No image data in response: ${JSON.stringify(data).slice(0, 200)}`);
 
-  if (!imageData) {
-    const textParts = parts.filter(p => p.text).map(p => p.text).join(' ');
-    throw new Error(`No image data in response. Text: ${textParts || '(none)'}`);
-  }
-
-  return `data:image/png;base64,${imageData}`;
+  return `data:image/png;base64,${b64}`;
 }
 
 const STORY_TYPES = [
@@ -68,9 +58,6 @@ export async function generateStory(
   characterName: string,
   scene: string
 ): Promise<string> {
-  const nvKey = process.env.NVIDIA_API_KEY;
-  if (!nvKey) throw new Error('NVIDIA_API_KEY is not configured');
-
   const storyType = STORY_TYPES[Math.floor(Math.random() * STORY_TYPES.length)];
 
   const prompt = `你是专门为6-9岁中国小朋友创作故事的儿童文学作家，文笔活泼，善用拟声词和比喻。
@@ -96,45 +83,14 @@ export async function generateStory(
 
 只输出故事正文。`;
 
-  const body = JSON.stringify({
-    model: 'deepseek-ai/deepseek-v4-flash',
+  const data = await mimoFetch('/chat/completions', {
+    model: MIMO_MODEL_STORY,
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: 600,
+    max_tokens: 4000,
     temperature: 0.9,
   });
 
-  return new Promise<string>((resolve, reject) => {
-    const req = https.request({
-      hostname: 'integrate.api.nvidia.com',
-      path: '/v1/chat/completions',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${nvKey}`,
-        'Content-Length': Buffer.byteLength(body),
-      },
-      timeout: 30000,
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => data += chunk);
-      res.on('end', () => {
-        if (res.statusCode !== 200) {
-          reject(new Error(`NVIDIA API error ${res.statusCode}: ${data}`));
-          return;
-        }
-        try {
-          const parsed = JSON.parse(data);
-          const content = parsed.choices?.[0]?.message?.content?.trim() ?? '';
-          if (!content) reject(new Error('Empty response from NVIDIA API'));
-          else resolve(content);
-        } catch (e) {
-          reject(new Error(`JSON parse error: ${data.slice(0, 200)}`));
-        }
-      });
-    });
-    req.on('timeout', () => { req.destroy(); reject(new Error('NVIDIA API request timed out')); });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
+  const content = data?.choices?.[0]?.message?.content?.trim() ?? '';
+  if (!content) throw new Error('Empty response from Mimo API');
+  return content;
 }
