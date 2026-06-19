@@ -1,7 +1,23 @@
+import { ProxyAgent, fetch as undiciFetch } from 'undici';
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+const GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-image';
+
+const PROXY_URL = process.env.HTTPS_PROXY || process.env.https_proxy || '';
+const proxyDispatcher = PROXY_URL ? new ProxyAgent(PROXY_URL) : undefined;
+
+// 本地开发走代理（HTTPS_PROXY），Vercel 生产直连
+async function proxiedFetch(url: string, options: Record<string, unknown>) {
+  if (proxyDispatcher) {
+    return undiciFetch(url, { ...options, dispatcher: proxyDispatcher } as Parameters<typeof undiciFetch>[1]);
+  }
+  return fetch(url, options as RequestInit);
+}
+
 const MIMO_API_KEY = process.env.MIMO_API_KEY || '';
 const MIMO_BASE = 'https://token-plan-sgp.xiaomimimo.com/v1';
-const MIMO_MODEL_IMAGE = 'mimo-v2.5';        // 原生多模态，支持图像生成
-const MIMO_MODEL_STORY = 'mimo-v2.5-pro';   // 纯文本旗舰，故事质量更高
+const MIMO_MODEL_STORY = 'mimo-v2.5';
 
 async function mimoFetch(path: string, body: object) {
   if (!MIMO_API_KEY) throw new Error('MIMO_API_KEY is not configured');
@@ -28,19 +44,37 @@ export async function generateWordCardImage(
   animal: string,
   scene: string
 ): Promise<string> {
+  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not configured');
+
   const prompt = `绘本插画风格，一只可爱的${animal}在${scene}里，画面温馨地表现"${word}"这个中文词语的意思。色彩鲜艳明亮，卡通可爱，适合6岁小朋友欣赏，构图简洁，画面中不要出现任何文字、汉字、拼音、字幕或标牌。`;
 
-  const data = await mimoFetch('/images/generations', {
-    model: MIMO_MODEL_IMAGE,
-    prompt,
-    n: 1,
-    response_format: 'b64_json',
-  });
+  const res = await proxiedFetch(
+    `${GEMINI_BASE}/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+      }),
+    }
+  );
 
-  const b64 = data?.data?.[0]?.b64_json;
-  if (!b64) throw new Error(`No image data in response: ${JSON.stringify(data).slice(0, 200)}`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Gemini API error ${res.status}: ${text.slice(0, 300)}`);
+  }
 
-  return `data:image/png;base64,${b64}`;
+  const data = await res.json();
+  const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> =
+    data?.candidates?.[0]?.content?.parts ?? [];
+  const imagePart = parts.find((p) => p.inlineData);
+  if (!imagePart?.inlineData) {
+    throw new Error(`No image in Gemini response: ${JSON.stringify(data).slice(0, 200)}`);
+  }
+
+  const { mimeType, data: b64 } = imagePart.inlineData;
+  return `data:${mimeType};base64,${b64}`;
 }
 
 const STORY_TYPES = [
