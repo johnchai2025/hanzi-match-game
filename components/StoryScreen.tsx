@@ -9,6 +9,7 @@ interface Props {
   saveData: SaveData;
   onBack: () => void;
   onAddStory: (story: Story) => void;
+  onDeleteStory: (id: string) => void;
   getCharacter: () => AnimalCharacter;
   getRandomScene: () => string;
 }
@@ -110,17 +111,81 @@ function CardPicker({ cards, selectedIds, isGenerating, onToggle, onConfirm, onC
   );
 }
 
+// ——— 故事列表弹窗 ———
+interface StoryListModalProps {
+  stories: Story[];
+  onSelect: (story: Story) => void;
+  onDelete: (id: string) => void;
+  onClose: () => void;
+}
+
+function StoryListModal({ stories, onSelect, onDelete, onClose }: StoryListModalProps) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="story-list-modal" onClick={e => e.stopPropagation()}>
+        <div className="story-list-header">
+          <span>我的故事</span>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+        <div className="story-list-items">
+          {stories.map(story => (
+            <div key={story.id} className="story-list-item-row">
+              {confirmDeleteId === story.id ? (
+                <div className="story-delete-confirm">
+                  <span className="story-delete-confirm-text">确认删除这个故事？</span>
+                  <button className="story-delete-yes" onClick={() => { onDelete(story.id); setConfirmDeleteId(null); }}>
+                    确认删除
+                  </button>
+                  <button className="story-delete-no" onClick={() => setConfirmDeleteId(null)}>
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    className="story-list-item"
+                    onClick={() => onSelect(story)}
+                  >
+                    <span className="story-list-title">
+                      {story.title ?? `${story.characterName}的小故事`}
+                    </span>
+                    <span className="story-list-meta">
+                      {story.words.join('、')} · {story.scene}
+                    </span>
+                  </button>
+                  <button
+                    className="story-list-delete-btn"
+                    onClick={() => setConfirmDeleteId(story.id)}
+                    title="删除故事"
+                  >
+                    ×
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ——— 主组件 ———
-export function StoryScreen({ saveData, onBack, onAddStory, getCharacter, getRandomScene }: Props) {
-  const [currentStory, setCurrentStory] = useState<Story | null>(saveData.stories?.[0] ?? null);
+export function StoryScreen({ saveData, onBack, onAddStory, onDeleteStory, getCharacter, getRandomScene }: Props) {
+  const initialStory = saveData.stories?.[0] ?? null;
+  const [currentStory, setCurrentStory] = useState<Story | null>(initialStory);
+  const [isSaved, setIsSaved] = useState<boolean>(Boolean(initialStory));
   const [showPicker, setShowPicker] = useState(false);
+  const [showStoryList, setShowStoryList] = useState(false);
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
 
   const { speak, stop, isSpeaking } = useTTS();
   const { isGenerating, error, generateStoryFromCards, regenerateStory } = useStory({
     onStoryGenerated: story => {
-      onAddStory(story);
       setCurrentStory(story);
+      setIsSaved(false);
     },
     getCharacter,
     getRandomScene,
@@ -160,18 +225,25 @@ export function StoryScreen({ saveData, onBack, onAddStory, getCharacter, getRan
     await regenerateStory(currentStory.words, currentStory.animal, currentStory.characterName, currentStory.scene);
   };
 
-  const handlePlayOld = () => {
-    if (oldStories.length === 0) return;
-    const story = oldStories[Math.floor(Math.random() * oldStories.length)];
+  const handleSelectOldStory = (story: Story) => {
+    stop();
     setCurrentStory(story);
+    setIsSaved(true);
+    setShowStoryList(false);
     speak(story.content);
+  };
+
+  const handleSaveStory = () => {
+    if (currentStory && !isSaved) {
+      onAddStory(currentStory);
+      setIsSaved(true);
+    }
   };
 
   const storySegments = useMemo(
     () => currentStory ? splitSegments(currentStory.content) : [],
     [currentStory]
   );
-
 
   if (showPicker) {
     return (
@@ -203,10 +275,12 @@ export function StoryScreen({ saveData, onBack, onAddStory, getCharacter, getRan
           <span className="story-action-title">{isGenerating ? '编故事中…' : '编新故事'}</span>
           <span className="story-action-sub">选择喜欢的词卡，生成一个专属故事</span>
         </button>
-        <button className="story-action-card story-action-old" disabled={oldStories.length === 0} onClick={handlePlayOld}>
+        <button className="story-action-card story-action-old" disabled={oldStories.length === 0} onClick={() => setShowStoryList(true)}>
           <span className="story-action-icon">📚</span>
           <span className="story-action-title">听旧故事</span>
-          <span className="story-action-sub">随机播放一个之前保存的故事</span>
+          <span className="story-action-sub">
+            {oldStories.length === 0 ? '还没有保存的故事' : `共 ${oldStories.length} 个故事，点击选择`}
+          </span>
         </button>
       </div>
 
@@ -219,7 +293,9 @@ export function StoryScreen({ saveData, onBack, onAddStory, getCharacter, getRan
         <div className="story-card">
           <div className="story-card-header">
             <div>
-              <div className="story-title">{currentStory.characterName}的小故事</div>
+              <div className="story-title">
+                {currentStory.title ?? `${currentStory.characterName}的小故事`}
+              </div>
               <div className="story-meta">发生在{currentStory.scene} · {currentStory.words.join('、')}</div>
             </div>
           </div>
@@ -236,6 +312,13 @@ export function StoryScreen({ saveData, onBack, onAddStory, getCharacter, getRan
               {isSpeaking ? '暂停朗读' : '朗读故事'}
             </button>
             <button
+              className="btn btn-save-story"
+              disabled={isSaved}
+              onClick={handleSaveStory}
+            >
+              {isSaved ? '已保存 ✓' : '保存故事'}
+            </button>
+            <button
               className="btn btn-restart"
               disabled={isGenerating}
               onClick={handleRegenerate}
@@ -244,6 +327,15 @@ export function StoryScreen({ saveData, onBack, onAddStory, getCharacter, getRan
             </button>
           </div>
         </div>
+      )}
+
+      {showStoryList && (
+        <StoryListModal
+          stories={oldStories}
+          onSelect={handleSelectOldStory}
+          onDelete={onDeleteStory}
+          onClose={() => setShowStoryList(false)}
+        />
       )}
     </div>
   );

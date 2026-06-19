@@ -63,6 +63,7 @@ export interface WordCard {
 
 export interface Story {
   id: string;
+  title?: string;      // AI 生成的故事标题
   words: string[];
   wordCards?: string[];
   content: string;

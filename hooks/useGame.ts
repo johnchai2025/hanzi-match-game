@@ -59,15 +59,17 @@ function initBoard(pairs: WordPair[], rows: number, cols: number): Cell[][] {
   );
 }
 
-// 检测棋盘上是否还有可消除的对
-function hasValidPair(cells: Cell[][]): boolean {
-  const flat = cells.flat().filter(c => !c.isEmpty);
-  // 只要有两个 pairId 相同的汉字格就能消除
-  const idCount = new Map<number, number>();
-  for (const cell of flat) {
-    const count = (idCount.get(cell.pairId) ?? 0) + 1;
-    if (count >= 2) return true;
-    idCount.set(cell.pairId, count);
+// 检测棋盘上是否还有可消除的对（按词语有效性，而非 pairId）
+function hasValidPair(cells: Cell[][], activePairs: WordPair[]): boolean {
+  const validWords = new Set(activePairs.map(p => p[0] + p[1]));
+  const remaining = cells.flat().filter(c => !c.isEmpty && c.char);
+  for (let i = 0; i < remaining.length; i++) {
+    for (let j = i + 1; j < remaining.length; j++) {
+      if (
+        validWords.has(remaining[i].char + remaining[j].char) ||
+        validWords.has(remaining[j].char + remaining[i].char)
+      ) return true;
+    }
   }
   return false;
 }
@@ -165,14 +167,16 @@ export function useGame(level: LevelData, pairsOverride?: WordPair[], options: U
       })
     );
 
-    // 找到一对相同 pairId 的汉字格
-    const seen = new Map<number, { cell: Cell; row: number; col: number }>();
+    // 找到一对可组成有效词语的汉字格
+    const validWords = new Set(activePairs.map(p => p[0] + p[1]));
     const validPairs: [typeof flat[0], typeof flat[0]][] = [];
-    for (const item of flat) {
-      if (seen.has(item.cell.pairId)) {
-        validPairs.push([seen.get(item.cell.pairId)!, item]);
-      } else {
-        seen.set(item.cell.pairId, item);
+    for (let i = 0; i < flat.length; i++) {
+      for (let j = i + 1; j < flat.length; j++) {
+        const w1 = flat[i].cell.char + flat[j].cell.char;
+        const w2 = flat[j].cell.char + flat[i].cell.char;
+        if (validWords.has(w1) || validWords.has(w2)) {
+          validPairs.push([flat[i], flat[j]]);
+        }
       }
     }
 
@@ -187,7 +191,7 @@ export function useGame(level: LevelData, pairsOverride?: WordPair[], options: U
     setTimeout(() => {
       setCells(prev => prev.map(row => row.map(cell => ({ ...cell, isHinted: false }))));
     }, 2000);
-  }, [cells]);
+  }, [cells, activePairs]);
 
   const handleCellClick = useCallback((row: number, col: number) => {
     const cell = cells[row][col];
@@ -215,16 +219,19 @@ export function useGame(level: LevelData, pairsOverride?: WordPair[], options: U
     const first = cells[selected.row][selected.col];
     const second = cell;
 
-    // 两个汉字来自同一词对即可消除（无顺序要求）
-    const canEliminate = first.pairId === second.pairId;
+    // 两个汉字能组成有效词语即可消除（无顺序要求，不依赖 pairId）
+    const w1 = first.char + second.char;
+    const w2 = second.char + first.char;
+    const matchedPair = activePairs.find(p => p[0] + p[1] === w1 || p[0] + p[1] === w2);
+    const canEliminate = !!matchedPair;
 
     if (canEliminate) {
-      const eliminatedWord = first.word;
-      const eliminatedPair = activePairs[first.pairId] ?? [eliminatedWord[0] ?? '', eliminatedWord[1] ?? ''];
+      const eliminatedWord = matchedPair![0] + matchedPair![1];
+      const matchedPairIndex = activePairs.indexOf(matchedPair!);
       options.onPairEliminated?.({
         word: eliminatedWord,
-        chars: eliminatedPair,
-        pairId: first.pairId,
+        chars: matchedPair!,
+        pairId: matchedPairIndex,
       });
 
       // 消除动画
@@ -262,7 +269,7 @@ export function useGame(level: LevelData, pairsOverride?: WordPair[], options: U
         // 死局检测
         setTimeout(() => {
           setCells(currentCells => {
-            if (!hasValidPair(currentCells)) {
+            if (!hasValidPair(currentCells, activePairs)) {
               const remainingCount = currentCells.flat().filter(c => !c.isEmpty).length;
               if (remainingCount > 0) {
                 setIsDeadlock(true);

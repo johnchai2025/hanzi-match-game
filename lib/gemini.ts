@@ -102,8 +102,8 @@ export async function generateStory(
 【故事类型】${storyType}
 
 【格式要求】
-- 150-200字，分2-3自然段，段与段之间空一行
-- 不要写标题
+- 第一行写一个4-8字的故事标题，格式：《标题》
+- 第二行起写故事正文，150-200字，分2-3自然段，段与段之间空一行
 
 【创作要求】
 - 每个词语在故事里出现至少1次，且真正推动情节（不是简单列举）
@@ -115,7 +115,7 @@ export async function generateStory(
 
 【禁止】不要用"走着走着""拍起手来""都是今天的新朋友"等套话；不要结尾列举词语总结；不要任何Markdown格式。
 
-只输出故事正文。`;
+只输出标题行和故事正文，不要其他内容。`;
 
   const data = await mimoFetch('/chat/completions', {
     model: MIMO_MODEL_STORY,

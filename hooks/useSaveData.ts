@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { SaveData, CustomLevel, Story, WordCard } from '../types';
-import { saveImage, loadAllImages } from '../lib/imageStore';
+import { saveImage, loadAllImages, deleteImage } from '../lib/imageStore';
 
 const SAVE_KEY = 'hanzi-match-save';
 const CUSTOM_KEY = 'hanzi-match-custom-levels';
@@ -163,6 +163,29 @@ export function useSaveData() {
     });
   }, []);
 
+  const deleteWordCard = useCallback((id: string) => {
+    deleteImage(id).catch(console.error);
+    setSaveData(prev => {
+      const next: SaveData = {
+        ...prev,
+        wordCards: (prev.wordCards || []).filter(c => c.id !== id),
+      };
+      saveToLocalStorage(next);
+      return next;
+    });
+  }, []);
+
+  const deleteStory = useCallback((id: string) => {
+    setSaveData(prev => {
+      const next: SaveData = {
+        ...prev,
+        stories: (prev.stories || []).filter(s => s.id !== id),
+      };
+      saveToLocalStorage(next);
+      return next;
+    });
+  }, []);
+
   const saveCustomLevel = useCallback((level: CustomLevel) => {
     setCustomLevels(prev => {
       const next = [...prev, level];
@@ -194,6 +217,8 @@ export function useSaveData() {
     addWordCard,
     addWordCards,
     addStory,
+    deleteWordCard,
+    deleteStory,
     saveCustomLevel,
     deleteCustomLevel,
     incrementPlayCount,

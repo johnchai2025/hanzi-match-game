@@ -31,6 +31,16 @@ export async function saveImage(id: string, dataUrl: string): Promise<void> {
   });
 }
 
+export async function deleteImage(id: string): Promise<void> {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 export async function loadAllImages(ids: string[]): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();
   const db = await getDB();

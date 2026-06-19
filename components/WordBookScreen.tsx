@@ -13,11 +13,13 @@ interface Props {
   customLevels: CustomLevel[];
   onBack: () => void;
   onStory: () => void;
+  onDeleteCard: (id: string) => void;
 }
 
-export function WordBookScreen({ levels, saveData, customLevels, onBack, onStory }: Props) {
+export function WordBookScreen({ levels, saveData, customLevels, onBack, onStory, onDeleteCard }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('words');
   const [selectedCard, setSelectedCard] = useState<WordCard | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const playedCustomLevels = customLevels.filter(l => l.playCount > 0);
 
   const builtInTotal = levels
@@ -175,9 +177,9 @@ export function WordBookScreen({ levels, saveData, customLevels, onBack, onStory
 
       {/* 词卡详情弹窗 */}
       {selectedCard && (
-        <div className="modal-overlay" onClick={() => setSelectedCard(null)}>
+        <div className="modal-overlay" onClick={() => { setSelectedCard(null); setConfirmDelete(false); }}>
           <div className="wordcard-detail-modal" onClick={e => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setSelectedCard(null)}>×</button>
+            <button className="close-btn" onClick={() => { setSelectedCard(null); setConfirmDelete(false); }}>×</button>
             <div className="detail-image">
               {selectedCard.imageUrl ? (
                 <img src={selectedCard.imageUrl} alt={selectedCard.word} />
@@ -196,6 +198,34 @@ export function WordBookScreen({ levels, saveData, customLevels, onBack, onStory
                 🧒 {selectedCard.characterName} · 🏞️ {selectedCard.scene}
               </p>
             </div>
+            {!confirmDelete ? (
+              <button
+                className="wordcard-delete-btn"
+                onClick={() => setConfirmDelete(true)}
+              >
+                删除词卡
+              </button>
+            ) : (
+              <div className="wordcard-confirm-row">
+                <span>确定删除这张词卡？</span>
+                <button
+                  className="wordcard-confirm-yes"
+                  onClick={() => {
+                    onDeleteCard(selectedCard.id);
+                    setSelectedCard(null);
+                    setConfirmDelete(false);
+                  }}
+                >
+                  确认删除
+                </button>
+                <button
+                  className="wordcard-confirm-no"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  取消
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

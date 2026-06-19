@@ -38,10 +38,18 @@ export function useStory({ onStoryGenerated, getCharacter, getRandomScene }: Use
     setError(null);
 
     try {
-      const { content, isFallback } = await callStoryAPI(words, character.animal, character.name, scene);
+      const { content: rawContent, isFallback } = await callStoryAPI(words, character.animal, character.name, scene);
       if (isFallback) console.warn('[Story] Gemini failed, using fallback template');
+
+      // 解析第一行《标题》
+      const lines = rawContent.split('\n');
+      const titleMatch = lines[0]?.trim().match(/^《(.+)》$/);
+      const title = titleMatch ? titleMatch[1] : undefined;
+      const content = titleMatch ? lines.slice(1).join('\n').trim() : rawContent;
+
       const story: Story = {
         id: `story-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title,
         words,
         wordCards: selectedCards.map(card => card.id),
         content,
@@ -64,10 +72,18 @@ export function useStory({ onStoryGenerated, getCharacter, getRandomScene }: Use
     setIsGenerating(true);
     setError(null);
     try {
-      const { content, isFallback } = await callStoryAPI(words, animal, characterName, scene);
+      const { content: rawContent, isFallback } = await callStoryAPI(words, animal, characterName, scene);
       if (isFallback) console.warn('[Story] Gemini failed, using fallback template');
+
+      // 解析第一行《标题》
+      const lines = rawContent.split('\n');
+      const titleMatch = lines[0]?.trim().match(/^《(.+)》$/);
+      const title = titleMatch ? titleMatch[1] : undefined;
+      const content = titleMatch ? lines.slice(1).join('\n').trim() : rawContent;
+
       const story: Story = {
         id: `story-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title,
         words,
         wordCards: [],
         content,

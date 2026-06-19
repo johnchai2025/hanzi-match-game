@@ -15,7 +15,7 @@ type Screen = 'select' | 'game' | 'wordbook' | 'story';
 
 export default function Home() {
   const { levels, loading, error, reload } = useLevels();
-  const { saveData, customLevels, completeLevel, addWordCard, addStory, saveCustomLevel, deleteCustomLevel, incrementPlayCount } = useSaveData();
+  const { saveData, customLevels, completeLevel, addWordCard, addStory, deleteStory, saveCustomLevel, deleteCustomLevel, incrementPlayCount, deleteWordCard } = useSaveData();
   const { saveProfile, isSetupRequired, getCharacter, getRandomScene } = useProfile();
 
   // Bug fix: default to 'select' so first-time users see level selection
@@ -117,6 +117,7 @@ export default function Home() {
           customLevels={customLevels}
           onBack={() => setScreen(activeLevel ? 'game' : 'select')}
           onStory={() => setScreen('story')}
+          onDeleteCard={deleteWordCard}
         />
         {isSetupRequired && (
           <ProfileSetupModal onComplete={handleProfileComplete} />
@@ -132,6 +133,7 @@ export default function Home() {
           saveData={saveData}
           onBack={() => setScreen('wordbook')}
           onAddStory={handleAddStory}
+          onDeleteStory={deleteStory}
           getCharacter={getCharacter}
           getRandomScene={getRandomScene}
         />
