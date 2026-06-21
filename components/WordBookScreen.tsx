@@ -183,12 +183,6 @@ export function WordBookScreen({ levels, saveData, customLevels, onStory, onDele
             </div>
             <div className="detail-info">
               <h2>{selectedCard.word}</h2>
-              <p className="detail-chars">
-                {selectedCard.chars[0]} + {selectedCard.chars[1]}
-              </p>
-              <p className="detail-meta">
-                🧒 {selectedCard.characterName} · 🏞️ {selectedCard.scene}
-              </p>
             </div>
             {!confirmDelete ? (
               <button

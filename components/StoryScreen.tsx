@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
-import { pinyin } from 'pinyin-pro';
 import type { SaveData, Story, AnimalCharacter, WordCard } from '@/types';
 import { useStory } from '@/hooks/useStory';
 import { useTTS } from '@/hooks/useTTS';
@@ -50,12 +49,8 @@ function renderBookLine(
       : <span key={i}>{part}</span>
   );
 
-  // 逐行拼音（复用 pinyin-pro）
-  const py = pinyin(text, { toneType: 'symbol', nonZh: 'consecutive' });
-
   return (
     <div key={segIdx} className="book-line">
-      <span className="lpy">{py}</span>
       {inner}
     </div>
   );

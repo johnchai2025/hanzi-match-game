@@ -45,18 +45,11 @@ export function RewardCardModal({ card, status, error, onSave, onSkip, onRetry }
                   <span className="stroke-char-label">{pinyin(card.chars[0], { toneType: 'symbol' })}</span>
                 </div>
                 <div className="stroke-writer-wrap">
-                  {!startSecond ? (
-                    <div className="stroke-pending-placeholder" style={{ width: 140, height: 140 }}>
-                      <span className="stroke-pending-icon">🔒</span>
-                      <span className="stroke-pending-hint">写完左边再来</span>
-                    </div>
-                  ) : (
-                    <HanziWriterCanvas
-                      char={card.chars[1]}
-                      shouldStart={startSecond}
-                      onQuizComplete={() => setChar2Done(true)}
-                    />
-                  )}
+                  <HanziWriterCanvas
+                    char={card.chars[1]}
+                    shouldStart={startSecond}
+                    onQuizComplete={() => setChar2Done(true)}
+                  />
                   <span className="stroke-char-label">{pinyin(card.chars[1], { toneType: 'symbol' })}</span>
                 </div>
               </div>
