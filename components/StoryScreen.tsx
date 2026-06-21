@@ -336,15 +336,22 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
                 >
                   {isSpeaking ? <><IconPause /> 停一下</> : <><IconSpeaker /> 让我念给你听</>}
                 </button>
-                <button className="btn btn-restart btn-block" disabled={isGenerating} onClick={handleRegenerate}>
-                  <IconRefresh /> {isGenerating ? '生成中…' : '换一个故事'}
-                </button>
-                <button className="btn btn-save-story btn-block" disabled={isSaved} onClick={handleSaveStory}>
-                  {isSaved ? <><IconCheck /> 已收藏</> : <><IconStar /> 收藏故事</>}
-                </button>
-                <button className="btn btn-ghost btn-block" disabled={!canGenerate || isGenerating} onClick={handleOpenPicker}>
-                  <IconPencil /> 编新故事
-                </button>
+                <div className="room-ctrls-row">
+                  <button className="btn btn-restart" disabled={isGenerating} onClick={handleRegenerate}>
+                    <IconRefresh /> 换一个故事
+                  </button>
+                  <button className="btn btn-save-story" disabled={isSaved} onClick={handleSaveStory}>
+                    {isSaved ? <><IconCheck /> 已收藏</> : <><IconStar /> 收藏故事</>}
+                  </button>
+                </div>
+                <div className="room-ctrls-row">
+                  <button className="btn btn-outline" disabled={!canGenerate || isGenerating} onClick={handleOpenPicker}>
+                    <IconPencil /> 编新故事
+                  </button>
+                  <button className="btn btn-restart" disabled={oldStories.length === 0} onClick={() => setShowStoryList(true)}>
+                    <IconBook /> 旧故事{oldStories.length > 0 ? `(${oldStories.length})` : ''}
+                  </button>
+                </div>
               </>
             ) : (
               <>
