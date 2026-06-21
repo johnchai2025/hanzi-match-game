@@ -223,10 +223,11 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
   const [showPicker, setShowPicker] = useState(false);
   const [showStoryList, setShowStoryList] = useState(false);
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
+  const [activeSegIdx, setActiveSegIdx] = useState(-1);
 
   const character = getCharacter();
 
-  const { speak, stop, isSpeaking, currentCharIndex } = useTTS();
+  const { stop, isSpeaking, speakChunks } = useTTS();
   const { isGenerating, error, generateStoryFromCards, regenerateStory } = useStory({
     onStoryGenerated: story => {
       setCurrentStory(story);
@@ -257,6 +258,7 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
   const handleConfirmPicker = async () => {
     const selected = cards.filter(c => selectedCardIds.has(c.id));
     stop();
+    setActiveSegIdx(-1);
     const story = await generateStoryFromCards(selected);
     if (story) {
       setShowPicker(false);
@@ -267,15 +269,16 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
   const handleRegenerate = async () => {
     if (!currentStory) return;
     stop();
+    setActiveSegIdx(-1);
     await regenerateStory(currentStory.words, currentStory.animal, currentStory.characterName, currentStory.scene);
   };
 
   const handleSelectOldStory = (story: Story) => {
     stop();
+    setActiveSegIdx(-1);
     setCurrentStory(story);
     setIsSaved(true);
     setShowStoryList(false);
-    speak(story.content);
   };
 
   const handleSaveStory = () => {
@@ -290,14 +293,17 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
     [currentStory]
   );
 
-  const activeSegIdx = useMemo(() => {
-    if (!isSpeaking) return -1;
-    let idx = -1;
-    for (let i = 0; i < storySegments.length; i++) {
-      if (storySegments[i].start <= currentCharIndex) idx = i;
+  const handlePlay = () => {
+    if (isSpeaking) {
+      stop();
+      setActiveSegIdx(-1);
+    } else if (currentStory) {
+      speakChunks(
+        storySegments.map(s => s.text.trim()).filter(Boolean),
+        (idx) => setActiveSegIdx(idx)
+      );
     }
-    return idx;
-  }, [isSpeaking, currentCharIndex, storySegments]);
+  };
 
   if (showPicker) {
     return (
@@ -332,7 +338,7 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
               <>
                 <button
                   className="btn btn-primary btn-big btn-block"
-                  onClick={() => (isSpeaking ? stop() : speak(currentStory.content))}
+                  onClick={handlePlay}
                 >
                   {isSpeaking ? <><IconPause /> 停一下</> : <><IconSpeaker /> 让我念给你听</>}
                 </button>

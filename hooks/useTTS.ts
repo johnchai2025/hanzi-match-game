@@ -36,6 +36,7 @@ export function useTTS() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const bestVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const chunkGenRef = useRef(0);
   // Chrome bug: speechSynthesis silently stops after ~15s on long texts.
   // Workaround: pause + resume every 10s while speaking.
   const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -164,6 +165,7 @@ export function useTTS() {
   }, [clearKeepAlive, speakWithWebSpeech]);
 
   const stop = useCallback(() => {
+    chunkGenRef.current++;
     audioRef.current?.pause();
     audioRef.current = null;
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -175,5 +177,40 @@ export function useTTS() {
     clearKeepAlive();
   }, [clearKeepAlive]);
 
-  return { isSpeaking, currentCharIndex, speak, stop };
+  const speakChunks = useCallback((
+    chunks: string[],
+    onChunkStart: (idx: number) => void
+  ): void => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const gen = ++chunkGenRef.current;
+    audioRef.current?.pause();
+    audioRef.current = null;
+    window.speechSynthesis.cancel();
+    clearKeepAlive();
+    if (!chunks.length) return;
+    setIsSpeaking(true);
+
+    let current = 0;
+    const next = () => {
+      if (chunkGenRef.current !== gen) return;
+      if (current >= chunks.length) {
+        setIsSpeaking(false);
+        onChunkStart(-1);
+        return;
+      }
+      const i = current++;
+      onChunkStart(i);
+      const utt = new SpeechSynthesisUtterance(chunks[i]);
+      utt.lang = 'zh-CN';
+      utt.rate = 0.88;
+      utt.pitch = 1.05;
+      if (bestVoiceRef.current) utt.voice = bestVoiceRef.current;
+      utt.onend = next;
+      utt.onerror = next;
+      window.speechSynthesis.speak(utt);
+    };
+    next();
+  }, [clearKeepAlive]);
+
+  return { isSpeaking, currentCharIndex, speak, stop, speakChunks };
 }

@@ -2080,8 +2080,8 @@ a { color: inherit; text-decoration: none; }
 
 .story-picker-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
   overflow-y: auto;
   max-height: 52vh;
   padding-bottom: 4px;
@@ -2090,13 +2090,13 @@ a { color: inherit; text-decoration: none; }
 .story-picker-card {
   position: relative;
   background: #fff;
-  border: 3px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 8px 6px 10px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 5px 4px 7px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   cursor: pointer;
   font-family: inherit;
   transition: border-color 0.15s, transform 0.1s;
@@ -2112,7 +2112,7 @@ a { color: inherit; text-decoration: none; }
 .story-picker-img {
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: #f3f4f6;
   display: flex;
@@ -2127,12 +2127,12 @@ a { color: inherit; text-decoration: none; }
 }
 
 .story-picker-placeholder {
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   color: #9ca3af;
 }
 
 .story-picker-word {
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #374151;
   line-height: 1;
@@ -2140,14 +2140,14 @@ a { color: inherit; text-decoration: none; }
 
 .story-picker-check {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
   background: #f43f5e;
   color: #fff;
   border-radius: 50%;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 800;
   display: flex;
   align-items: center;
