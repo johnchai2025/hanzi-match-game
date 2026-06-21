@@ -33,7 +33,8 @@ function splitSegments(content: string): Segment[] {
 function renderBookLine(
   seg: Segment,
   segIdx: number,
-  targetWords: string[]
+  targetWords: string[],
+  isActive: boolean
 ) {
   const text = seg.text.trim();
   if (!text) return null;
@@ -50,7 +51,7 @@ function renderBookLine(
   );
 
   return (
-    <div key={segIdx} className="book-line">
+    <div key={segIdx} className={`book-line${isActive ? ' reading' : ''}`}>
       {inner}
     </div>
   );
@@ -185,7 +186,7 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
 
   const character = getCharacter();
 
-  const { speak, stop, isSpeaking } = useTTS();
+  const { speak, stop, isSpeaking, currentCharIndex } = useTTS();
   const { isGenerating, error, generateStoryFromCards, regenerateStory } = useStory({
     onStoryGenerated: story => {
       setCurrentStory(story);
@@ -248,6 +249,15 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
     () => currentStory ? splitSegments(currentStory.content) : [],
     [currentStory]
   );
+
+  const activeSegIdx = useMemo(() => {
+    if (!isSpeaking) return -1;
+    let idx = -1;
+    for (let i = 0; i < storySegments.length; i++) {
+      if (storySegments[i].start <= currentCharIndex) idx = i;
+    }
+    return idx;
+  }, [isSpeaking, currentCharIndex, storySegments]);
 
   if (showPicker) {
     return (
@@ -316,7 +326,7 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
               <div className="book-title">{currentStory.title ?? `${currentStory.characterName}的小故事`}</div>
               <div className="book-tag">发生在{currentStory.scene} · {currentStory.words.join('、')}</div>
               <div className="book-page">
-                {storySegments.map((seg, i) => renderBookLine(seg, i, currentStory.words))}
+                {storySegments.map((seg, i) => renderBookLine(seg, i, currentStory.words, i === activeSegIdx))}
               </div>
             </>
           ) : (
