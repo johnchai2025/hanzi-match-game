@@ -57,6 +57,46 @@ function renderBookLine(
   );
 }
 
+// ——— 自定义图标 ———
+function IconSpeaker() {
+  return <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style={{flexShrink:0}}>
+    <path d="M9.5 2.5 5.5 6.5H3a1 1 0 00-1 1v5a1 1 0 001 1h2.5l4 4V2.5z"/>
+    <path d="M13 7a4 4 0 010 6M15.5 4.5a8 8 0 010 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+  </svg>;
+}
+function IconPause() {
+  return <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style={{flexShrink:0}}>
+    <rect x="4" y="3" width="4" height="14" rx="1.5"/>
+    <rect x="12" y="3" width="4" height="14" rx="1.5"/>
+  </svg>;
+}
+function IconRefresh() {
+  return <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style={{flexShrink:0}}>
+    <path d="M4 10a6 6 0 016-6c1.7 0 3.2.7 4.3 1.8L13 7h5V2l-1.8 1.8A8 8 0 002 10a8 8 0 0016 0h-2a6 6 0 01-6 6 6 6 0 01-6-6z"/>
+  </svg>;
+}
+function IconStar() {
+  return <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style={{flexShrink:0}}>
+    <path d="M10 1.5 12.2 6l5 .7-3.6 3.5.85 5L10 12.75l-4.45 2.45.85-5L2.8 6.7l5-.7z"/>
+  </svg>;
+}
+function IconCheck() {
+  return <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{flexShrink:0}}>
+    <path d="M4 10.5l4.5 4.5 7.5-8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>;
+}
+function IconBook() {
+  return <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style={{flexShrink:0}}>
+    <path d="M3 4.5A1.5 1.5 0 014.5 3H9a2 2 0 012 2v11a2 2 0 00-2-2H4.5A1.5 1.5 0 013 12.5V4.5z"/>
+    <path d="M17 4.5A1.5 1.5 0 0015.5 3H11a2 2 0 00-2 2v11a2 2 0 012-2h4.5A1.5 1.5 0 0017 12.5V4.5z"/>
+  </svg>;
+}
+function IconPencil() {
+  return <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style={{flexShrink:0}}>
+    <path d="M14.07 2.93a2 2 0 012.83 2.83l-1.4 1.41-2.83-2.83 1.4-1.41zM11.25 6.75l-7 7V16h2.25l7-7-2.25-2.25z"/>
+  </svg>;
+}
+
 // ——— 词卡选择器 ———
 interface CardPickerProps {
   cards: WordCard[];
@@ -294,25 +334,25 @@ export function StoryScreen({ saveData, onAddStory, onDeleteStory, getCharacter,
                   className="btn btn-primary btn-big btn-block"
                   onClick={() => (isSpeaking ? stop() : speak(currentStory.content))}
                 >
-                  {isSpeaking ? '⏸ 停一下' : '🔊 让我念给你听'}
+                  {isSpeaking ? <><IconPause /> 停一下</> : <><IconSpeaker /> 让我念给你听</>}
                 </button>
                 <button className="btn btn-restart btn-block" disabled={isGenerating} onClick={handleRegenerate}>
-                  {isGenerating ? '生成中…' : '🔄 换一个故事'}
+                  <IconRefresh /> {isGenerating ? '生成中…' : '换一个故事'}
                 </button>
                 <button className="btn btn-save-story btn-block" disabled={isSaved} onClick={handleSaveStory}>
-                  {isSaved ? '已收藏 ✓' : '⭐ 收藏故事'}
+                  {isSaved ? <><IconCheck /> 已收藏</> : <><IconStar /> 收藏故事</>}
                 </button>
                 <button className="btn btn-ghost btn-block" disabled={!canGenerate || isGenerating} onClick={handleOpenPicker}>
-                  ✍️ 编新故事
+                  <IconPencil /> 编新故事
                 </button>
               </>
             ) : (
               <>
                 <button className="btn btn-primary btn-big btn-block" disabled={!canGenerate || isGenerating} onClick={handleOpenPicker}>
-                  ✍️ 编新故事
+                  <IconPencil /> {isGenerating ? '编故事中…' : '编新故事'}
                 </button>
                 <button className="btn btn-restart btn-block" disabled={oldStories.length === 0} onClick={() => setShowStoryList(true)}>
-                  📚 听旧故事 {oldStories.length > 0 ? `(${oldStories.length})` : ''}
+                  <IconBook /> 听旧故事 {oldStories.length > 0 ? `(${oldStories.length})` : ''}
                 </button>
               </>
             )}

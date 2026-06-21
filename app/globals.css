@@ -2244,7 +2244,7 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden; flex-shrink: 0;
 }
 .mascot-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.mascot-img-xl { width: 100px; height: 100px; }
+.mascot-img-xl { width: 70px; height: 70px; }
 .mascot-img-lg { width: 76px; height: 76px; border-radius: 16px; }
 .mascot-img-sm { width: 52px; height: 52px; border-radius: 14px; }
 .speech {
@@ -2383,13 +2383,13 @@ a { color: inherit; text-decoration: none; }
 .wb-words-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 
 /* ===================== 07 故事屋：温暖阅读小屋（横屏） ===================== */
-.room-main { position: relative; padding: calc(16px + env(safe-area-inset-top)) 22px 18px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column;
+.room-main { position: relative; padding: calc(16px + env(safe-area-inset-top)) 22px 60px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column;
   background: linear-gradient(180deg, #fff3df, #ffe6c4); }
 .room-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; background: linear-gradient(180deg, #c98a4f, #a86a34); box-shadow: inset 0 3px 6px rgba(255,255,255,0.15); }
 .room-cols { position: relative; z-index: 2; flex: 1; min-height: 0; display: flex; gap: 18px; }
 .room-left { width: 26%; display: flex; flex-direction: column; gap: 11px; }
-.room-narrator { background: #fffaf0; border-radius: 22px; padding: 10px 10px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 8px 22px rgba(150,100,40,0.2), inset 0 0 0 2px #f7e6c4; }
-.room-speech { text-align: center; }
+.room-narrator { background: #fffaf0; border-radius: 22px; padding: 8px; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 22px rgba(150,100,40,0.2), inset 0 0 0 2px #f7e6c4; }
+.room-speech { text-align: center; font-size: 0.82rem; }
 .room-book { flex: 1; background: linear-gradient(180deg, #fffdf6, #fff6e6); border-radius: 18px; padding: 18px 22px; box-shadow: 0 10px 28px rgba(120,80,30,0.25), inset 0 0 0 2px #f3e4c4; position: relative; display: flex; flex-direction: column; min-width: 0; }
 .book-title { font-family: var(--font-hand); font-size: 1.5rem; color: #7a4a1e; text-align: center; }
 .book-tag { text-align: center; color: #e8830f; font-weight: 700; font-size: 0.78rem; margin: 3px 0 12px; }
@@ -2398,6 +2398,8 @@ a { color: inherit; text-decoration: none; }
 .book-line mark { color: #d4380d; background: #ffe8d6; border-radius: 5px; padding: 0 3px; font-weight: 800; }
 .book-line.reading { background: #fef9c3; border-radius: 7px; box-shadow: 0 0 0 6px #fef9c3; }
 .room-ctrls { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.room-ctrls .btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; font-size: 0.9rem; }
+.room-ctrls .btn-big { padding: 13px 14px; font-size: 1rem; }
 .book-empty { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; color: #b08a5a; font-family: var(--font-round); font-size: 1.05rem; padding: 24px; }
 .story-pick-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: calc(16px + env(safe-area-inset-top)) 24px 20px; background: linear-gradient(180deg, #fff3df, #ffe6c4); }
 
