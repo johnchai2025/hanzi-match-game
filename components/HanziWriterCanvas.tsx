@@ -14,7 +14,7 @@ interface Props {
 export function HanziWriterCanvas({
   char,
   size = 140,
-  strokeColor = '#f97316',
+  strokeColor = '#c06020',
   shouldStart = true,
   onPhaseOneComplete,
   onQuizComplete,
@@ -40,9 +40,9 @@ export function HanziWriterCanvas({
         height: size,
         padding: 8,
         strokeColor,
-        outlineColor: '#fde68a',
-        drawingColor: '#ea580c',
-        highlightColor: '#fbbf24',
+        outlineColor: '#d4a574',
+        drawingColor: '#8a5628',
+        highlightColor: '#f59e0b',
         strokeAnimationSpeed: 1,
         delayBetweenStrokes: 300,
         showOutline: true,
@@ -92,9 +92,9 @@ export function HanziWriterCanvas({
           fontSize: size * 0.55,
           color: strokeColor,
           fontFamily: "'Ma Shan Zheng', serif",
-          border: '2px dashed #fde68a',
+          border: '2px dashed #d4a574',
           borderRadius: 12,
-          background: '#fffbeb',
+          background: '#fff8ef',
         }}
       >
         {char}

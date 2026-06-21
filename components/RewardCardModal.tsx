@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { WordCard } from '@/types';
 import { HanziWriterCanvas } from './HanziWriterCanvas';
+import { pinyin } from 'pinyin-pro';
 
 interface Props {
   card: WordCard;
@@ -29,11 +30,7 @@ export function RewardCardModal({ card, status, error, onSave, onSkip, onRetry }
   return (
     <div className="modal-overlay">
       <div className="reward-card-modal">
-        <div className="reward-card-header">
-          <h2>{card.word}</h2>
-        </div>
-
-        <div className="reward-card-image">
+        <div className={`reward-card-image${showPractice ? ' is-practice' : ''}`}>
           {showPractice ? (
             <div className="stroke-practice-area">
               <p className="stroke-practice-hint">来写一写这两个字吧 ✏️</p>
@@ -45,15 +42,22 @@ export function RewardCardModal({ card, status, error, onSave, onSkip, onRetry }
                     onPhaseOneComplete={() => setStartSecond(true)}
                     onQuizComplete={() => setChar1Done(true)}
                   />
-                  <span className="stroke-char-label">{card.chars[0]}</span>
+                  <span className="stroke-char-label">{pinyin(card.chars[0], { toneType: 'symbol' })}</span>
                 </div>
                 <div className="stroke-writer-wrap">
-                  <HanziWriterCanvas
-                    char={card.chars[1]}
-                    shouldStart={startSecond}
-                    onQuizComplete={() => setChar2Done(true)}
-                  />
-                  <span className="stroke-char-label">{card.chars[1]}</span>
+                  {!startSecond ? (
+                    <div className="stroke-pending-placeholder" style={{ width: 140, height: 140 }}>
+                      <span className="stroke-pending-icon">🔒</span>
+                      <span className="stroke-pending-hint">写完左边再来</span>
+                    </div>
+                  ) : (
+                    <HanziWriterCanvas
+                      char={card.chars[1]}
+                      shouldStart={startSecond}
+                      onQuizComplete={() => setChar2Done(true)}
+                    />
+                  )}
+                  <span className="stroke-char-label">{pinyin(card.chars[1], { toneType: 'symbol' })}</span>
                 </div>
               </div>
               <div className="stroke-generating-label">
@@ -85,7 +89,7 @@ export function RewardCardModal({ card, status, error, onSave, onSkip, onRetry }
         </div>
 
         <div className="reward-card-actions">
-          <button className="btn btn-primary" disabled={isGenerating} onClick={onSave}>
+          <button className="btn btn-primary" disabled={isGenerating || !allQuizDone} onClick={onSave}>
             保存到词卡库
           </button>
           <button className="btn btn-restart" disabled={isGenerating} onClick={onSkip}>

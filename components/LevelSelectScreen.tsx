@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react';
-import type { LevelData, CustomLevel } from '../types';
+import type { LevelData, CustomLevel, AnimalCharacter } from '../types';
 import { CustomTab } from './CustomTab';
+import { MascotImg } from './MascotImg';
+import { LevelNodeIcon } from './LevelNodeIcon';
 
 interface Props {
   levels: LevelData[];
@@ -12,11 +14,8 @@ interface Props {
   onPlayCustom: (level: CustomLevel) => void;
   onSaveCustom: (level: CustomLevel) => void;
   onDeleteCustom: (id: string) => void;
+  getCharacter: () => AnimalCharacter;
 }
-
-type Tab = 1 | 2 | 3 | 'custom';
-
-const GRADE_NAMES: Record<number, string> = { 1: '一年级下', 2: '二年级', 3: '三年级' };
 
 export function LevelSelectScreen({
   levels,
@@ -26,78 +25,86 @@ export function LevelSelectScreen({
   onPlayCustom,
   onSaveCustom,
   onDeleteCustom,
+  getCharacter,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>(1);
+  const [showCustom, setShowCustom] = useState(false);
 
-  const levelsByGrade = (grade: number) => levels.filter(l => l.grade === grade);
-
+  const character = getCharacter();
   const isUnlocked = (id: string) => saveData.unlockedLevels.includes(id);
   const isCompleted = (id: string) => saveData.completedLevels.includes(id);
 
+  // 第一个「已解锁未完成」即当前关
+  const nowIndex = levels.findIndex(l => isUnlocked(l.id) && !isCompleted(l.id));
+  const doneCount = levels.filter(l => isCompleted(l.id)).length;
+
+  const stateOf = (level: LevelData, idx: number): 'done' | 'now' | 'lock' => {
+    if (isCompleted(level.id)) return 'done';
+    if (idx === nowIndex) return 'now';
+    return isUnlocked(level.id) ? 'now' : 'lock';
+  };
+
+  const subOf = (st: 'done' | 'now' | 'lock') =>
+    st === 'done' ? '已通关 ⭐⭐⭐' : st === 'now' ? '继续闯关！' : '通关解锁';
+
   return (
-    <div className="level-select-screen">
-      <div className="level-select-header">
-        <h1 className="game-title">汉字对对碰</h1>
-        <p className="game-subtitle">跟着人教版一年级下册练词语</p>
+    <div className="map-main">
+      <div className="map-head">
+        <div className="map-title">识字大冒险</div>
+        <div className="map-sub">一年级下 · {character.name || '小伙伴'}陪你出发</div>
+        <div className="map-prog">⭐ {doneCount} / {levels.length}</div>
       </div>
 
-      <div className="tabs">
-        {([1, 2, 3] as const).map(g => (
-          <button
-            key={g}
-            className={`tab-btn${activeTab === g ? ' tab-active' : ''}`}
-            onClick={() => setActiveTab(g)}
-          >
-            {GRADE_NAMES[g]}
-          </button>
-        ))}
-        <button
-          className={`tab-btn tab-btn-custom${activeTab === 'custom' ? ' tab-active' : ''}`}
-          onClick={() => setActiveTab('custom')}
-        >
-          ✨ 我的字库
-        </button>
-      </div>
-
-      <div className="tab-content">
-        {activeTab === 'custom' ? (
-          <CustomTab
-            customLevels={customLevels}
-            onPlay={onPlayCustom}
-            onDelete={onDeleteCustom}
-            onSave={onSaveCustom}
-          />
-        ) : (
-          <div className="level-grid">
-            {levelsByGrade(activeTab).map(level => {
-              const unlocked = isUnlocked(level.id);
-              const completed = isCompleted(level.id);
-              return (
+      <div className="trail-scroll">
+        <div className="trail">
+          <div className="trail-line" />
+          {levels.map((level, idx) => {
+            const st = stateOf(level, idx);
+            const pos = idx % 2 === 0 ? 'up' : 'down';
+            const clickable = st !== 'lock';
+            return (
+              <div key={level.id} className={`trail-stop ${pos}`}>
                 <div
-                  key={level.id}
-                  className={`level-card${unlocked ? '' : ' level-locked'}${completed ? ' level-completed' : ''}`}
-                  onClick={() => unlocked && onSelectLevel(level)}
+                  className={`trail-node ${st}`}
+                  onClick={() => clickable && onSelectLevel(level)}
                 >
-                  <div className={`level-card-band grade-${level.grade}`} />
-                  <div className="level-card-top">
-                    <span className="level-number">第{level.level}关</span>
-                    {completed && <span className="level-badge level-badge-done">⭐⭐⭐</span>}
-                    {!unlocked && <span className="level-badge">🔒</span>}
-                  </div>
-                  <div className="level-card-title">{level.title}</div>
-                  <div className="level-card-sub">
-                    {(level.boardRows ?? 6) * (level.boardCols ?? 6) / 2} 组/局 · 词池 {level.pairs.length} 组
-                  </div>
+                  {st === 'now' ? (
+                    <MascotImg animal={character.animal} emoji={character.emoji} />
+                  ) : (
+                    <LevelNodeIcon index={idx} title={level.title} locked={st === 'lock'} />
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+                <div className="trail-card">
+                  <div className="trail-name">{level.level}. {level.title}</div>
+                  <div className="trail-sub">{subOf(st)}</div>
+                  {clickable && (
+                    <button className="btn btn-primary" onClick={() => onSelectLevel(level)}>
+                      {st === 'done' ? '重玩' : '开始'} →
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="level-select-footer">
-        v1.5 · 哈维yao
-      </div>
+      <button className="map-custom-btn" onClick={() => setShowCustom(true)}>
+        ✨ 我的字库
+      </button>
+
+      {showCustom && (
+        <div className="modal-overlay" onClick={() => setShowCustom(false)}>
+          <div className="modal-content custom-modal" onClick={e => e.stopPropagation()}>
+            <button className="close-btn custom-modal-close" onClick={() => setShowCustom(false)}>✕</button>
+            <CustomTab
+              customLevels={customLevels}
+              onPlay={(l) => { setShowCustom(false); onPlayCustom(l); }}
+              onDelete={onDeleteCustom}
+              onSave={onSaveCustom}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

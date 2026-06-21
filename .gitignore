@@ -41,6 +41,13 @@ yarn-error.log*
 .claude/
 .trae/
 
+# temp test scripts
+hanzi-test.js
+test-*.js
+
+# design drafts (local only)
+design-demos/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

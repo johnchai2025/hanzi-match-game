@@ -10,16 +10,17 @@ import { GameScreen } from '@/components/GameScreen';
 import { WordBookScreen } from '@/components/WordBookScreen';
 import { StoryScreen } from '@/components/StoryScreen';
 import { ProfileSetupModal } from '@/components/ProfileSetupModal';
+import { NavRail, type NavTab } from '@/components/NavRail';
+import { OrientationGate } from '@/components/OrientationGate';
 
-type Screen = 'select' | 'game' | 'wordbook' | 'story';
+type View = 'levelselect' | 'game' | 'wordbook' | 'story';
 
 export default function Home() {
   const { levels, loading, error, reload } = useLevels();
   const { saveData, customLevels, completeLevel, addWordCard, addStory, deleteStory, saveCustomLevel, deleteCustomLevel, incrementPlayCount, deleteWordCard } = useSaveData();
   const { saveProfile, isSetupRequired, getCharacter, getRandomScene } = useProfile();
 
-  // Bug fix: default to 'select' so first-time users see level selection
-  const [screen, setScreen] = useState<Screen>('select');
+  const [view, setView] = useState<View>('levelselect');
   const [activeLevel, setActiveLevel] = useState<LevelData | null>(null);
   const [activeCustomLevel, setActiveCustomLevel] = useState<CustomLevel | null>(null);
 
@@ -51,13 +52,13 @@ export default function Home() {
   const handleSelectLevel = (level: LevelData) => {
     setActiveLevel(level);
     setActiveCustomLevel(null);
-    setScreen('game');
+    setView('game');
   };
 
   const handlePlayCustom = (level: CustomLevel) => {
     setActiveCustomLevel(level);
     setActiveLevel(levels[0] ?? null);
-    setScreen('game');
+    setView('game');
   };
 
   const handleNextLevel = (level: LevelData) => {
@@ -81,83 +82,75 @@ export default function Home() {
     addStory(story);
   };
 
-  if (screen === 'game' && activeLevel) {
-    return (
-      <>
-        <GameScreen
-          key={activeCustomLevel ? activeCustomLevel.id : activeLevel.id}
-          level={activeLevel}
-          nextLevel={activeCustomLevel ? null : getNextLevel(activeLevel)}
-          onSelectLevel={() => setScreen('select')}
-          onNextLevel={handleNextLevel}
-          onComplete={handleComplete}
-          customLevel={activeCustomLevel ?? undefined}
-          onIncrementPlayCount={incrementPlayCount}
-          onSaveCustom={saveCustomLevel}
-          onPlayCustom={handlePlayCustom}
-          onWordBook={() => setScreen('wordbook')}
-          onAddWordCard={handleAddWordCard}
-          savedWordCards={saveData.wordCards}
-          getCharacter={getCharacter}
-          getRandomScene={getRandomScene}
-        />
-        {isSetupRequired && (
-          <ProfileSetupModal onComplete={handleProfileComplete} />
-        )}
-      </>
-    );
-  }
+  // 导航栏当前高亮项：游戏对局归属「闯关」
+  const navTab: NavTab = view === 'wordbook' ? 'cards' : view === 'story' ? 'story' : 'home';
 
-  if (screen === 'wordbook') {
-    return (
-      <>
-        <WordBookScreen
-          levels={levels}
-          saveData={saveData}
-          customLevels={customLevels}
-          onBack={() => setScreen(activeLevel ? 'game' : 'select')}
-          onStory={() => setScreen('story')}
-          onDeleteCard={deleteWordCard}
-        />
-        {isSetupRequired && (
-          <ProfileSetupModal onComplete={handleProfileComplete} />
-        )}
-      </>
-    );
-  }
-
-  if (screen === 'story') {
-    return (
-      <>
-        <StoryScreen
-          saveData={saveData}
-          onBack={() => setScreen('wordbook')}
-          onAddStory={handleAddStory}
-          onDeleteStory={deleteStory}
-          getCharacter={getCharacter}
-          getRandomScene={getRandomScene}
-        />
-        {isSetupRequired && (
-          <ProfileSetupModal onComplete={handleProfileComplete} />
-        )}
-      </>
-    );
-  }
+  const handleNavigate = (tab: NavTab) => {
+    if (tab === 'home') setView('levelselect');
+    else if (tab === 'cards') setView('wordbook');
+    else setView('story');
+  };
 
   return (
-    <>
-      <LevelSelectScreen
-        levels={levels}
-        saveData={saveData}
-        customLevels={customLevels}
-        onSelectLevel={handleSelectLevel}
-        onPlayCustom={handlePlayCustom}
-        onSaveCustom={saveCustomLevel}
-        onDeleteCustom={deleteCustomLevel}
-      />
-      {isSetupRequired && (
-        <ProfileSetupModal onComplete={handleProfileComplete} />
-      )}
-    </>
+    <div className="app-shell">
+      {view !== 'game' && <NavRail active={navTab} onNavigate={handleNavigate} />}
+      <main className="app-content">
+        {view === 'game' && activeLevel && (
+          <GameScreen
+            key={activeCustomLevel ? activeCustomLevel.id : activeLevel.id}
+            level={activeLevel}
+            nextLevel={activeCustomLevel ? null : getNextLevel(activeLevel)}
+            onSelectLevel={() => setView('levelselect')}
+            onNextLevel={handleNextLevel}
+            onComplete={handleComplete}
+            customLevel={activeCustomLevel ?? undefined}
+            onIncrementPlayCount={incrementPlayCount}
+            onSaveCustom={saveCustomLevel}
+            onPlayCustom={handlePlayCustom}
+            onWordBook={() => setView('wordbook')}
+            onAddWordCard={handleAddWordCard}
+            savedWordCards={saveData.wordCards}
+            getCharacter={getCharacter}
+            getRandomScene={getRandomScene}
+          />
+        )}
+
+        {view === 'wordbook' && (
+          <WordBookScreen
+            levels={levels}
+            saveData={saveData}
+            customLevels={customLevels}
+            onStory={() => setView('story')}
+            onDeleteCard={deleteWordCard}
+          />
+        )}
+
+        {view === 'story' && (
+          <StoryScreen
+            saveData={saveData}
+            onAddStory={handleAddStory}
+            onDeleteStory={deleteStory}
+            getCharacter={getCharacter}
+            getRandomScene={getRandomScene}
+          />
+        )}
+
+        {view === 'levelselect' && (
+          <LevelSelectScreen
+            levels={levels}
+            saveData={saveData}
+            customLevels={customLevels}
+            onSelectLevel={handleSelectLevel}
+            onPlayCustom={handlePlayCustom}
+            onSaveCustom={saveCustomLevel}
+            onDeleteCustom={deleteCustomLevel}
+            getCharacter={getCharacter}
+          />
+        )}
+      </main>
+
+      {isSetupRequired && <ProfileSetupModal onComplete={handleProfileComplete} />}
+      <OrientationGate />
+    </div>
   );
 }

@@ -11,13 +11,12 @@ interface Props {
   levels: LevelData[];
   saveData: SaveData;
   customLevels: CustomLevel[];
-  onBack: () => void;
   onStory: () => void;
   onDeleteCard: (id: string) => void;
 }
 
-export function WordBookScreen({ levels, saveData, customLevels, onBack, onStory, onDeleteCard }: Props) {
-  const [activeTab, setActiveTab] = useState<TabType>('words');
+export function WordBookScreen({ levels, saveData, customLevels, onStory, onDeleteCard }: Props) {
+  const [activeTab, setActiveTab] = useState<TabType>('cards');
   const [selectedCard, setSelectedCard] = useState<WordCard | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const playedCustomLevels = customLevels.filter(l => l.playCount > 0);
@@ -33,40 +32,75 @@ export function WordBookScreen({ levels, saveData, customLevels, onBack, onStory
 
   const totalCards = saveData.wordCards?.length || 0;
 
-  return (
-    <div className="wordbook-screen">
-      <div className="wordbook-topbar">
-        <button className="wordbook-back-btn" onClick={onBack}>← 返回</button>
-        <span className="wordbook-topbar-title">我的词语本</span>
-        <div className="wordbook-topbar-spacer" />
-      </div>
+  // 图鉴槽位：至少 18 格，且始终留有待收集的锁定位
+  const albumSlots = Math.max(18, Math.ceil((totalCards + 1) / 6) * 6);
+  const lockedSlots = Math.max(0, albumSlots - totalCards);
+  const storyThreshold = 4;
+  const remainForStory = Math.max(0, storyThreshold - totalCards);
 
-      {/* 标签切换 */}
-      <div className="wordbook-tabs">
+  return (
+    <div className="wb-main">
+      <div className="wb-tabs">
         <button
-          className={`tab-btn ${activeTab === 'words' ? 'active' : ''}`}
+          className={`wb-tab ${activeTab === 'cards' ? 'active' : ''}`}
+          onClick={() => setActiveTab('cards')}
+        >
+          🎴 宝藏图鉴 ({totalCards})
+        </button>
+        <button
+          className={`wb-tab ${activeTab === 'words' ? 'active' : ''}`}
           onClick={() => setActiveTab('words')}
         >
           📝 词语本
         </button>
-        <button
-          className={`tab-btn ${activeTab === 'cards' ? 'active' : ''}`}
-          onClick={() => setActiveTab('cards')}
-        >
-          🎴 词卡库 ({totalCards})
-        </button>
       </div>
-      <button
-        className="btn btn-primary story-entry-btn"
-        disabled={(saveData.wordCards?.length || 0) < 4}
-        onClick={onStory}
-      >
-        ✍️ 用词卡编故事
-      </button>
+
+      {/* 词卡库 Tab — 宝藏图鉴 */}
+      {activeTab === 'cards' && (
+        <>
+          <div className="wb-top">
+            <div>
+              <div className="wb-title">宝藏图鉴</div>
+              <div className="wb-sub">把配对成功的词卡都收集起来吧～</div>
+            </div>
+            <div className="wb-stat"><b>{totalCards}</b> / {albumSlots} 张</div>
+          </div>
+          <div className="wb-progbar">
+            <div style={{ width: `${Math.round((totalCards / albumSlots) * 100)}%` }} />
+          </div>
+
+          <div className="album-pad">
+            <div className="album-grid-pad">
+              {saveData.wordCards?.map(card => (
+                <div key={card.id} className="sticker-pad got" onClick={() => setSelectedCard(card)}>
+                  {card.imageUrl ? (
+                    <img src={card.imageUrl} alt={card.word} />
+                  ) : (
+                    <div className="wcard-ph">{card.word}</div>
+                  )}
+                  <div className="sticker-cap">{card.word}</div>
+                </div>
+              ))}
+              {Array.from({ length: lockedSlots }, (_, i) => (
+                <div key={`lock-${i}`} className="sticker-pad locked">?</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="wb-foot">
+            <span className="wb-foot-txt">
+              {remainForStory > 0 ? `📖 再集 ${remainForStory} 张解锁故事屋` : '📖 词卡够啦，去编个故事吧！'}
+            </span>
+            <button className="btn btn-primary" disabled={totalCards < storyThreshold} onClick={onStory}>
+              ✍️ 用宝藏编故事
+            </button>
+          </div>
+        </>
+      )}
 
       {/* 词语本 Tab */}
       {activeTab === 'words' && (
-        <>
+        <div className="wb-words-scroll">
           <div className="wordbook-hero">
             <span className="wordbook-hero-num">{totalWords}</span>
             <span className="wordbook-hero-label">已学会的词语</span>
@@ -130,48 +164,6 @@ export function WordBookScreen({ levels, saveData, customLevels, onBack, onStory
               )}
             </div>
           </div>
-        </>
-      )}
-
-      {/* 词卡库 Tab */}
-      {activeTab === 'cards' && (
-        <div className="wordcard-library">
-          {totalCards === 0 ? (
-            <div className="wordcard-empty">
-              <div className="empty-icon">🎴</div>
-              <p>还没有词卡哦～</p>
-              <p className="empty-hint">完成关卡即可获得精美词卡！</p>
-            </div>
-          ) : (
-            <>
-              <div className="wordcard-header">
-                <span>共 {totalCards} 张词卡</span>
-              </div>
-              <div className="wordcard-grid">
-                {saveData.wordCards?.map(card => (
-                  <div
-                    key={card.id}
-                    className="wordcard-item"
-                    onClick={() => setSelectedCard(card)}
-                  >
-                    <div className="wordcard-image">
-                      {card.imageUrl ? (
-                        <img src={card.imageUrl} alt={card.word} />
-                      ) : (
-                        <div className="wordcard-placeholder">
-                          <span>{card.word}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="wordcard-info">
-                      <span className="wordcard-word">{card.word}</span>
-                      <span className="wordcard-meta">{card.characterName} · {card.scene}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </div>
       )}
 

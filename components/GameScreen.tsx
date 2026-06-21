@@ -6,15 +6,13 @@ import { useGame, pickPairsForGame } from '../hooks/useGame';
 import { useTTS } from '../hooks/useTTS';
 import { useWordCardGeneration } from '../hooks/useWordCardGeneration';
 import { GameBoard } from './GameBoard';
-import { GameHeader } from './GameHeader';
-import { GameControls } from './GameControls';
 import { FeedbackToast } from './FeedbackToast';
 import { MilestoneToast } from './MilestoneToast';
 import { CompletionModal } from './CompletionModal';
-import { UploadPanel } from './UploadPanel';
 import { DeadlockModal } from './DeadlockModal';
 import { NewCardToast } from './NewCardToast';
 import { RewardCardModal } from './RewardCardModal';
+import { MascotImg } from './MascotImg';
 
 interface RewardCardState {
   status: 'generating' | 'ready';
@@ -66,7 +64,6 @@ export function GameScreen({
   }, [level, customLevel, pairCount]);
 
   const completedRef = useRef(false);
-  const [showUpload, setShowUpload] = useState(false);
   const [showNewCardToast, setShowNewCardToast] = useState(false);
   const [savedCardCount, setSavedCardCount] = useState(0);
   const [rewardCard, setRewardCard] = useState<RewardCardState | null>(null);
@@ -185,29 +182,61 @@ export function GameScreen({
     });
   };
 
+  const character = getCharacter?.() ?? { animal: '小兔子', emoji: '🐰', name: '小伙伴' };
+  const progress = activePairs.length > 0 ? Math.round((eliminatedCount / activePairs.length) * 100) : 0;
+  const title = customLevel ? customLevel.title : level.title;
+  const mascotMsg = (() => {
+    if (progress >= 100) return '全部消完啦！🎉';
+    if (eliminatedCount === 0) return '找找相同的词语，配对消除吧！';
+    if (eliminatedCount >= 4) return `超厉害！${character.name}为你跳舞啦～`;
+    if (eliminatedCount >= 2) return '连消达人！继续冲！';
+    return '太棒了！继续加油！';
+  })();
+
   return (
-    <div className="game-screen">
-      <GameHeader
-        level={level}
-        eliminatedCount={eliminatedCount}
-        pairCount={activePairs.length}
-        isCustom={!!customLevel}
-        customTitle={customLevel?.title}
-        onSelectLevel={onSelectLevel}
-        onUpload={() => setShowUpload(true)}
-      />
+    <div className="gb">
+      <div className="gb-board-wrap">
+        <button className="gb-back" onClick={onSelectLevel}>← 选关</button>
+        <div className="gb-board">
+          <GameBoard cells={cells} onCellClick={handleCellClick} flippedCells={flippedCells} onFlipCell={handleFlipCell} />
+        </div>
+      </div>
+
+      <div className="gb-side">
+        <div className="gb-side-head">
+          <div className="gb-lvl">{customLevel ? '✨ ' : `第${level.level}关 · `}{title}</div>
+          <div className="gb-lvl-sub">点相同的词语消消看～</div>
+        </div>
+
+        {eliminatedCount >= 2 && (
+          <div className="gb-combo">连消 ×{eliminatedCount} 🔥</div>
+        )}
+
+        <div className="gb-mascot-card">
+          <MascotImg animal={character.animal} emoji={character.emoji} className="mascot-img-sm" />
+          <div className="speech">{mascotMsg}</div>
+        </div>
+
+        <div className="gb-prog">
+          <div className="gb-prog-row">
+            <span>闯关进度</span>
+            <span>{eliminatedCount} / {activePairs.length}</span>
+          </div>
+          <div className="gb-prog-track">
+            <div className="gb-prog-fill" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+
+        <div className="gb-ctrls">
+          <button className="btn btn-hint btn-big btn-block" onClick={showHint}>💡 找一对给我看</button>
+          <button className="btn btn-restart btn-big btn-block" onClick={handleRestart}>🔄 重新摆放</button>
+        </div>
+      </div>
+
       <MilestoneToast message={milestone} />
-      <GameBoard cells={cells} onCellClick={handleCellClick} flippedCells={flippedCells} onFlipCell={handleFlipCell} />
       <FeedbackToast message={feedback} />
       <NewCardToast count={savedCardCount} show={showNewCardToast} />
-      <GameControls
-        onHint={showHint}
-        onRestart={handleRestart}
-        onSelectLevel={onSelectLevel}
-      />
-      <button className="btn-wordbook-entry" onClick={onWordBook}>
-        📚 词语本
-      </button>
+
       {isComplete && (
         <CompletionModal
           onNextLevel={nextLevel && !customLevel ? () => onNextLevel(nextLevel) : null}
@@ -215,6 +244,7 @@ export function GameScreen({
           onSelectLevel={onSelectLevel}
           onWordBook={onWordBook}
           newCardCount={savedCardCount}
+          character={character}
         />
       )}
       {rewardCard && (
@@ -231,13 +261,6 @@ export function GameScreen({
         <DeadlockModal
           onReshuffle={handleReshuffle}
           onRestart={handleRestart}
-        />
-      )}
-      {showUpload && (
-        <UploadPanel
-          onSave={onSaveCustom}
-          onPlay={onPlayCustom}
-          onClose={() => setShowUpload(false)}
         />
       )}
     </div>
