@@ -190,58 +190,58 @@ export function useTTS() {
     if (!chunks.length) return;
     setIsSpeaking(true);
 
-    let current = 0;
-
-    const next = async () => {
-      if (chunkGenRef.current !== gen) return;
-      if (current >= chunks.length) {
-        setIsSpeaking(false);
-        onChunkStart(-1);
-        return;
-      }
-      const i = current++;
-      onChunkStart(i);
-      const text = chunks[i];
-
-      // Try cloud TTS (same quality as speak())
-      if (!cloudUnavailableRef.current) {
-        try {
-          const res = await fetch('/api/generate-speech', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text }),
-          });
-          if (chunkGenRef.current !== gen) return;
-          const data = await res.json();
-          if (chunkGenRef.current !== gen) return;
-
-          if (!data.unsupported && data.audioBase64) {
-            const audio = new Audio(`data:audio/mp3;base64,${data.audioBase64}`);
-            audioRef.current = audio;
-            audio.onended = next;
-            audio.onerror = () => { if (chunkGenRef.current === gen) next(); };
-            try { await audio.play(); } catch { if (chunkGenRef.current === gen) next(); }
-            return;
-          }
-          if (data.unsupported) cloudUnavailableRef.current = true;
-        } catch {
-          cloudUnavailableRef.current = true;
-        }
-      }
-
-      // Web Speech fallback
-      if (chunkGenRef.current !== gen) return;
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = 'zh-CN';
-      utt.rate = 0.88;
-      utt.pitch = 1.05;
-      if (bestVoiceRef.current) utt.voice = bestVoiceRef.current;
-      utt.onend = next;
-      utt.onerror = next;
-      window.speechSynthesis.speak(utt);
+    // Pre-fetch all chunks in parallel so playback has no async gaps.
+    // Per-chunk await fetch() breaks the browser user-gesture context,
+    // causing audio.play() to throw and highlights to cycle silently.
+    const fetchOne = (text: string): Promise<string | null> => {
+      if (cloudUnavailableRef.current) return Promise.resolve(null);
+      return fetch('/api/generate-speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
+        .then(r => r.json())
+        .then((d): string | null => (!d.unsupported && d.audioBase64) ? d.audioBase64 : null)
+        .catch((): string | null => { cloudUnavailableRef.current = true; return null; });
     };
 
-    next();
+    Promise.all(chunks.map(fetchOne)).then(buffers => {
+      if (chunkGenRef.current !== gen) return;
+
+      let current = 0;
+      const next = () => {
+        if (chunkGenRef.current !== gen) return;
+        if (current >= chunks.length) {
+          setIsSpeaking(false);
+          onChunkStart(-1);
+          return;
+        }
+        const i = current++;
+        onChunkStart(i);
+        const base64 = buffers[i];
+
+        if (base64) {
+          const audio = new Audio(`data:audio/mp3;base64,${base64}`);
+          audioRef.current = audio;
+          audio.onended = next;
+          audio.onerror = next;
+          audio.play().catch(next);
+          return;
+        }
+
+        // Web Speech fallback for this chunk
+        const utt = new SpeechSynthesisUtterance(chunks[i]);
+        utt.lang = 'zh-CN';
+        utt.rate = 0.88;
+        utt.pitch = 1.05;
+        if (bestVoiceRef.current) utt.voice = bestVoiceRef.current;
+        utt.onend = next;
+        utt.onerror = next;
+        window.speechSynthesis.speak(utt);
+      };
+
+      next();
+    });
   }, [clearKeepAlive]);
 
   return { isSpeaking, currentCharIndex, speak, stop, speakChunks };
