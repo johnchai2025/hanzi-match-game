@@ -191,7 +191,8 @@ export function useTTS() {
     setIsSpeaking(true);
 
     let current = 0;
-    const next = () => {
+
+    const next = async () => {
       if (chunkGenRef.current !== gen) return;
       if (current >= chunks.length) {
         setIsSpeaking(false);
@@ -200,7 +201,37 @@ export function useTTS() {
       }
       const i = current++;
       onChunkStart(i);
-      const utt = new SpeechSynthesisUtterance(chunks[i]);
+      const text = chunks[i];
+
+      // Try cloud TTS (same quality as speak())
+      if (!cloudUnavailableRef.current) {
+        try {
+          const res = await fetch('/api/generate-speech', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+          });
+          if (chunkGenRef.current !== gen) return;
+          const data = await res.json();
+          if (chunkGenRef.current !== gen) return;
+
+          if (!data.unsupported && data.audioBase64) {
+            const audio = new Audio(`data:audio/mp3;base64,${data.audioBase64}`);
+            audioRef.current = audio;
+            audio.onended = next;
+            audio.onerror = () => { if (chunkGenRef.current === gen) next(); };
+            try { await audio.play(); } catch { if (chunkGenRef.current === gen) next(); }
+            return;
+          }
+          if (data.unsupported) cloudUnavailableRef.current = true;
+        } catch {
+          cloudUnavailableRef.current = true;
+        }
+      }
+
+      // Web Speech fallback
+      if (chunkGenRef.current !== gen) return;
+      const utt = new SpeechSynthesisUtterance(text);
       utt.lang = 'zh-CN';
       utt.rate = 0.88;
       utt.pitch = 1.05;
@@ -209,6 +240,7 @@ export function useTTS() {
       utt.onerror = next;
       window.speechSynthesis.speak(utt);
     };
+
     next();
   }, [clearKeepAlive]);
 
