@@ -15,25 +15,25 @@ async function proxiedFetch(url: string, options: Record<string, unknown>) {
   return fetch(url, options as RequestInit);
 }
 
-const MIMO_API_KEY = process.env.MIMO_API_KEY || '';
-const MIMO_BASE = 'https://token-plan-sgp.xiaomimimo.com/v1';
-const MIMO_MODEL_STORY = 'mimo-v2.5';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+const DEEPSEEK_BASE = 'https://api.deepseek.com';
+const DEEPSEEK_MODEL_STORY = 'deepseek-v4-flash';
 
-async function mimoFetch(path: string, body: object) {
-  if (!MIMO_API_KEY) throw new Error('MIMO_API_KEY is not configured');
+async function deepseekFetch(path: string, body: object) {
+  if (!DEEPSEEK_API_KEY) throw new Error('DEEPSEEK_API_KEY is not configured');
 
-  const res = await fetch(`${MIMO_BASE}${path}`, {
+  const res = await fetch(`${DEEPSEEK_BASE}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${MIMO_API_KEY}`,
+      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Mimo API error ${res.status}: ${text.slice(0, 300)}`);
+    throw new Error(`DeepSeek API error ${res.status}: ${text.slice(0, 300)}`);
   }
 
   return res.json();
@@ -117,14 +117,14 @@ export async function generateStory(
 
 只输出标题行和故事正文，不要其他内容。`;
 
-  const data = await mimoFetch('/chat/completions', {
-    model: MIMO_MODEL_STORY,
+  const data = await deepseekFetch('/chat/completions', {
+    model: DEEPSEEK_MODEL_STORY,
     messages: [{ role: 'user', content: prompt }],
     max_tokens: 4000,
     temperature: 0.9,
   });
 
   const content = data?.choices?.[0]?.message?.content?.trim() ?? '';
-  if (!content) throw new Error('Empty response from Mimo API');
+  if (!content) throw new Error('Empty response from DeepSeek API');
   return content;
 }
